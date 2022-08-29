@@ -107,17 +107,20 @@ async def export(text):
         if key in configs:
             configs = re.sub(f'{key}=("|\').*("|\')', kv, configs)
             change += f"【替换】环境变量成功\nexport {kv}"
-            await client.send_message(bot_id, change)
         else:
-            end_line = 0
             configs = rwcon("list")
-            for config in configs:
-                if "第二区域" in config and "↑" in config:
-                    end_line = configs.index(config) - 1
-                    break
+            end_line = next(
+                (
+                    configs.index(config) - 1
+                    for config in configs
+                    if "第二区域" in config and "↑" in config
+                ),
+                0,
+            )
+
             configs.insert(end_line, f'export {key}="{value}"\n')
             change += f"【新增】环境变量成功\nexport {kv}"
-            await client.send_message(bot_id, change)
+        await client.send_message(bot_id, change)
         rwcon(configs)
     if len(change) == 0:
         await client.send_message(bot_id, f'【取消】{key}环境变量无需改动')
@@ -128,13 +131,13 @@ async def export(text):
 async def handler(event):
     for auto_stop_file in monitor_auto_stops:
         os.popen(f"ps -ef | grep {auto_stop_file}" + " | grep -v grep | awk '{print $1}' | xargs kill -9")
-    await client.send_message(bot_id, f'没水停车')
+    await client.send_message(bot_id, '没水停车')
 
 
 # 设置变量
 @client.on(events.NewMessage(chats=monitor_cars, pattern='^在吗$'))
 async def handler(event):
-    await client.send_message(bot_id, f'老板啥事？')
+    await client.send_message(bot_id, '老板啥事？')
 
 
 # 设置变量
@@ -163,7 +166,7 @@ async def handler(event):
         logger.info(f"原始数据 {text}")
         # 微定制
         if "WDZactivityId" in text:
-            activity_id = re.search(f'WDZactivityId="(.+?)"', text)[1]
+            activity_id = re.search('WDZactivityId="(.+?)"', text)[1]
             if cache.get(activity_id) is not None:
                 await client.send_message(bot_id, f'跑过 {text}')
                 return
@@ -286,8 +289,7 @@ if __name__ == "__main__":
         for key in monitor_scripts:
             action = monitor_scripts[key]
             name = action.get('name')
-            queue = action.get("queue")
-            if queue:
+            if queue := action.get("queue"):
                 queues[action.get("queue_name")] = asyncio.Queue()
                 client.loop.create_task(task(name, key))
             else:
